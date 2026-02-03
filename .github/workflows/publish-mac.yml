@@ -24,9 +24,9 @@ jobs:
             -o dist-mac-release \
             --self-contained \
             --runtime osx-arm64 \
-            --project src/Santy.Web \
             -p:DebugType=none \
-            -p:DebugSymbols=false
+            -p:DebugSymbols=false \
+            src/Santy.Web
 
       - name: Create archive
         run: |
