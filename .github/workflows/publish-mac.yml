@@ -1,0 +1,40 @@
+name: Publish macOS M1 (self-contained)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish (osx-arm64, self-contained)
+        run: |
+          dotnet publish -c Release \
+            -o dist-mac-release \
+            --self-contained \
+            --runtime osx-arm64 \
+            --project src/Santy.Web \
+            -p:DebugType=none \
+            -p:DebugSymbols=false
+
+      - name: Create archive
+        run: |
+          cd dist-mac-release
+          tar -czf ../Santy-macOS-M1.tar.gz .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Santy-macOS-M1
+          path: Santy-macOS-M1.tar.gz

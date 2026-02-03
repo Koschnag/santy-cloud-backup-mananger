@@ -1,0 +1,116 @@
+@page "/settings"
+@using Santy.Web.Services
+@using Santy.Web.Models
+@inject SettingsService SettingsService
+
+<PageTitle>Settings - Santy</PageTitle>
+
+<h1>Settings</h1>
+
+<div class="settings-form">
+    <EditForm Model="@settings" OnValidSubmit="@SaveSettings">
+        <div class="form-group">
+            <label for="dbPath">Database Path:</label>
+            <InputText id="dbPath" @bind-Value="settings.DatabasePath" class="form-control" />
+            <small class="form-text text-muted">Path to SQLite database file (default: ./santy.db)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="sourceName">Source Name:</label>
+            <InputText id="sourceName" @bind-Value="settings.SourceName" class="form-control" />
+            <small class="form-text text-muted">Name of the remote source (e.g., icloud, onedrive)</small>
+        </div>
+
+        <div class="form-group">
+            <label for="localRoot">Local Root Path:</label>
+            <InputText id="localRoot" @bind-Value="settings.LocalRootPath" class="form-control" />
+            <small class="form-text text-muted">Root directory to scan for local files</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        
+        @if (!string.IsNullOrEmpty(saveMessage))
+        {
+            <span class="save-message">@saveMessage</span>
+        }
+    </EditForm>
+</div>
+
+<style>
+    .settings-form {
+        max-width: 600px;
+        margin-top: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .save-message {
+        margin-left: 10px;
+        color: green;
+        font-weight: bold;
+    }
+</style>
+
+@code {
+    private AppSettings settings = new();
+    private string? saveMessage;
+
+    protected override void OnInitialized()
+    {
+        settings = SettingsService.LoadSettings();
+    }
+
+    private void SaveSettings()
+    {
+        SettingsService.SaveSettings(settings);
+        saveMessage = "Settings saved successfully!";
+        StateHasChanged();
+        
+        // Clear message after 3 seconds
+        Task.Delay(3000).ContinueWith(_ =>
+        {
+            saveMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}

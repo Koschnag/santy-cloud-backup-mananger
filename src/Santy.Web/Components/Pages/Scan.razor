@@ -1,0 +1,164 @@
+@page "/scan"
+@using Santy.Web.Services
+@inject SantyOperationsService OperationsService
+@inject AppStateService StateService
+@implements IDisposable
+
+<PageTitle>Scan - Santy</PageTitle>
+
+<h1>Scan Local Files</h1>
+
+<div class="scan-container">
+    <div class="scan-actions">
+        <button class="btn btn-primary" @onclick="StartScan" disabled="@StateService.IsScanRunning">
+            @(StateService.IsScanRunning ? "Scanning..." : "Scan Local Files")
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(StateService.CurrentOperation) && StateService.IsScanRunning)
+    {
+        <div class="status-message running">
+            <strong>@StateService.CurrentOperation</strong>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(StateService.LastError))
+    {
+        <div class="status-message error">
+            <strong>Error:</strong> @StateService.LastError
+        </div>
+    }
+
+    @if (StateService.ScanInfo.LastScanTime.HasValue)
+    {
+        <div class="scan-info">
+            <h3>Last Scan Results</h3>
+            <div class="info-row">
+                <span class="label">Scan Time:</span>
+                <span class="value">@StateService.ScanInfo.LastScanTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Files Scanned:</span>
+                <span class="value">@StateService.ScanInfo.FilesScanned</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No scan has been performed yet.</p>
+            <p>Click the button above to scan your local files.</p>
+        </div>
+    }
+</div>
+
+<style>
+    .scan-container {
+        margin-top: 20px;
+    }
+
+    .scan-actions {
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .btn-primary {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #218838;
+    }
+
+    .btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .status-message {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .status-message.running {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    .status-message.error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .scan-info {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .scan-info h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+
+    .info-row {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-row .label {
+        font-weight: bold;
+        width: 150px;
+    }
+
+    .info-row .value {
+        flex: 1;
+    }
+
+    .empty-state {
+        background-color: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 4px;
+        padding: 40px;
+        text-align: center;
+        color: #6c757d;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    protected override void OnInitialized()
+    {
+        StateService.OnChange += StateHasChanged;
+    }
+
+    private async Task StartScan()
+    {
+        await OperationsService.ScanLocalAsync();
+    }
+
+    public void Dispose()
+    {
+        StateService.OnChange -= StateHasChanged;
+    }
+}

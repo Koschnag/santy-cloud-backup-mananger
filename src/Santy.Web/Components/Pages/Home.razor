@@ -1,0 +1,168 @@
+@page "/"
+
+<PageTitle>Santy - Home</PageTitle>
+
+<h1>Santy Cloud Backup Manager</h1>
+
+<div class="welcome-content">
+    <p class="lead">Welcome to Santy v0.1 MVP - your iCloud backup management solution.</p>
+    
+    <div class="workflow-section">
+        <h2>Workflow</h2>
+        <div class="workflow-steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Configure Settings</h3>
+                    <p>Set your database path, source name, and local root directory.</p>
+                    <a href="/settings" class="btn btn-link">Go to Settings →</a>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Scan Local Files</h3>
+                    <p>Scan your local backup directory to inventory all files.</p>
+                    <a href="/scan" class="btn btn-link">Go to Scan →</a>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Import Remote Inventory</h3>
+                    <p>Upload a JSONL file containing your remote asset inventory.</p>
+                    <a href="/import" class="btn btn-link">Go to Import →</a>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Run Diff Analysis</h3>
+                    <p>Compare remote and local inventories to find missing or uncertain files.</p>
+                    <a href="/diff" class="btn btn-link">Go to Diff →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h3>About v0.1</h3>
+        <p>This MVP focuses on <strong>Inventory → Scan → Diff</strong> operations.</p>
+        <ul>
+            <li>✅ Scan local backup directories</li>
+            <li>✅ Import remote asset inventories</li>
+            <li>✅ Compute differences with smart matching</li>
+            <li>✅ Filter and export results</li>
+        </ul>
+        <p><em>Future versions will add transfer and verification capabilities.</em></p>
+    </div>
+</div>
+
+<style>
+    .welcome-content {
+        margin-top: 20px;
+    }
+
+    .lead {
+        font-size: 18px;
+        color: #495057;
+        margin-bottom: 30px;
+    }
+
+    .workflow-section {
+        margin-bottom: 40px;
+    }
+
+    .workflow-section h2 {
+        margin-bottom: 20px;
+        color: #2c3e50;
+    }
+
+    .workflow-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .step {
+        display: flex;
+        background-color: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        transition: box-shadow 0.2s;
+    }
+
+    .step:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .step-number {
+        width: 50px;
+        height: 50px;
+        background-color: #3498db;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: bold;
+        flex-shrink: 0;
+        margin-right: 20px;
+    }
+
+    .step-content {
+        flex: 1;
+    }
+
+    .step-content h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #2c3e50;
+    }
+
+    .step-content p {
+        margin-bottom: 10px;
+        color: #6c757d;
+    }
+
+    .btn-link {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .btn-link:hover {
+        text-decoration: underline;
+    }
+
+    .info-box {
+        background-color: #e7f3ff;
+        border: 1px solid #b8daff;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+    }
+
+    .info-box h3 {
+        margin-top: 0;
+        color: #004085;
+    }
+
+    .info-box ul {
+        margin: 15px 0;
+        padding-left: 20px;
+    }
+
+    .info-box li {
+        margin-bottom: 8px;
+    }
+
+    .info-box em {
+        color: #666;
+    }
+</style>

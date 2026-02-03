@@ -1,0 +1,73 @@
+@using Santy.Web.Services
+@inject AppStateService StateService
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(StateService.CurrentOperation) && IsOperationRunning)
+{
+    <div class="status-message running">
+        <span class="spinner">⏳</span>
+        <strong>@StateService.CurrentOperation</strong>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(StateService.LastError))
+{
+    <div class="status-message error">
+        <span class="error-icon">⚠️</span>
+        <strong>Error:</strong> @StateService.LastError
+    </div>
+}
+
+<style>
+    .status-message {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        gap: 10px;
+    }
+
+    .status-message.running {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    .status-message.error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .spinner {
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+
+    .error-icon {
+        font-size: 18px;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private bool IsOperationRunning =>
+        StateService.IsScanRunning ||
+        StateService.IsImportRunning ||
+        StateService.IsDiffRunning;
+
+    protected override void OnInitialized()
+    {
+        StateService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        StateService.OnChange -= StateHasChanged;
+    }
+}

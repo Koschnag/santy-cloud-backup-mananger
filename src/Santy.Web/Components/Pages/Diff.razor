@@ -1,0 +1,420 @@
+@page "/diff"
+@using Santy.Web.Services
+@using Santy.Core.Models
+@using System.Text.Json
+@inject SantyOperationsService OperationsService
+@inject AppStateService StateService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<PageTitle>Diff - Santy</PageTitle>
+
+<h1>Diff Analysis</h1>
+
+<div class="diff-container">
+    <div class="diff-actions">
+        <button class="btn btn-primary" @onclick="StartDiff" disabled="@StateService.IsDiffRunning">
+            @(StateService.IsDiffRunning ? "Computing Diff..." : "Run Diff")
+        </button>
+
+        @if (StateService.DiffInfo.Results.Any())
+        {
+            <button class="btn btn-secondary" @onclick="ExportResults">
+                Export Results (JSONL)
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(StateService.CurrentOperation) && StateService.IsDiffRunning)
+    {
+        <div class="status-message running">
+            <strong>@StateService.CurrentOperation</strong>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(StateService.LastError))
+    {
+        <div class="status-message error">
+            <strong>Error:</strong> @StateService.LastError
+        </div>
+    }
+
+    @if (StateService.DiffInfo.LastDiffTime.HasValue)
+    {
+        <div class="diff-summary">
+            <h3>Diff Summary</h3>
+            <div class="summary-row">
+                <span class="label">Last Run:</span>
+                <span class="value">@StateService.DiffInfo.LastDiffTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+            </div>
+            <div class="summary-stats">
+                <div class="stat-box present">
+                    <div class="stat-number">@StateService.DiffInfo.PresentCount</div>
+                    <div class="stat-label">Present</div>
+                </div>
+                <div class="stat-box missing">
+                    <div class="stat-number">@StateService.DiffInfo.MissingCount</div>
+                    <div class="stat-label">Missing</div>
+                </div>
+                <div class="stat-box uncertain">
+                    <div class="stat-number">@StateService.DiffInfo.UncertainCount</div>
+                    <div class="stat-label">Uncertain</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <h3>Results</h3>
+            
+            <div class="filter-tabs">
+                <button class="tab @(currentFilter == "all" ? "active" : "")" @onclick='() => currentFilter = "all"'>
+                    All (@StateService.DiffInfo.Results.Count)
+                </button>
+                <button class="tab @(currentFilter == "missing" ? "active" : "")" @onclick='() => currentFilter = "missing"'>
+                    Missing (@StateService.DiffInfo.MissingCount)
+                </button>
+                <button class="tab @(currentFilter == "uncertain" ? "active" : "")" @onclick='() => currentFilter = "uncertain"'>
+                    Uncertain (@StateService.DiffInfo.UncertainCount)
+                </button>
+                <button class="tab @(currentFilter == "present" ? "active" : "")" @onclick='() => currentFilter = "present"'>
+                    Present (@StateService.DiffInfo.PresentCount)
+                </button>
+            </div>
+
+            <div class="results-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Asset ID</th>
+                            <th>Filename</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Matched Path</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var result in GetFilteredResults())
+                        {
+                            <tr class="status-@result.Status.ToString().ToLower()">
+                                <td>@result.SourceAssetId</td>
+                                <td>@GetFilename(result)</td>
+                                <td>
+                                    <span class="status-badge @result.Status.ToString().ToLower()">
+                                        @result.Status
+                                    </span>
+                                </td>
+                                <td>@result.Reason</td>
+                                <td>@(result.MatchedLocalPath ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                
+                @if (!GetFilteredResults().Any())
+                {
+                    <div class="no-results">
+                        No results for this filter.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No diff analysis has been performed yet.</p>
+            <p>Click the button above to compute differences between remote and local files.</p>
+        </div>
+    }
+</div>
+
+<style>
+    .diff-container {
+        margin-top: 20px;
+    }
+
+    .diff-actions {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    .btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .status-message {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .status-message.running {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    .status-message.error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .diff-summary {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .diff-summary h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+
+    .summary-row {
+        margin-bottom: 15px;
+    }
+
+    .summary-row .label {
+        font-weight: bold;
+        margin-right: 10px;
+    }
+
+    .summary-stats {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .stat-box {
+        flex: 1;
+        padding: 20px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .stat-box.present {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    .stat-box.missing {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
+
+    .stat-box.uncertain {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #666;
+    }
+
+    .results-section {
+        margin-top: 30px;
+    }
+
+    .results-section h3 {
+        margin-bottom: 15px;
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .tab {
+        padding: 10px 20px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: #495057;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+    }
+
+    .tab:hover {
+        color: #007bff;
+    }
+
+    .tab.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+        font-weight: bold;
+    }
+
+    .results-table {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+    }
+
+    thead {
+        background-color: #f8f9fa;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    th {
+        font-weight: bold;
+        color: #495057;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .status-badge.present {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .status-badge.missing {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .status-badge.uncertain {
+        background-color: #ffc107;
+        color: #333;
+    }
+
+    .no-results {
+        padding: 40px;
+        text-align: center;
+        color: #6c757d;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .empty-state {
+        background-color: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 4px;
+        padding: 40px;
+        text-align: center;
+        color: #6c757d;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    private string currentFilter = "all";
+
+    protected override void OnInitialized()
+    {
+        StateService.OnChange += StateHasChanged;
+    }
+
+    private async Task StartDiff()
+    {
+        await OperationsService.RunDiffAsync();
+    }
+
+    private IEnumerable<DiffResult> GetFilteredResults()
+    {
+        var results = StateService.DiffInfo.Results;
+        
+        return currentFilter switch
+        {
+            "missing" => results.Where(r => r.Status == DiffStatus.Missing),
+            "uncertain" => results.Where(r => r.Status == DiffStatus.Uncertain),
+            "present" => results.Where(r => r.Status == DiffStatus.Present),
+            _ => results
+        };
+    }
+
+    private string GetFilename(DiffResult result)
+    {
+        // Try to extract filename from the matched path or use asset ID
+        if (!string.IsNullOrEmpty(result.MatchedLocalPath))
+        {
+            return Path.GetFileName(result.MatchedLocalPath);
+        }
+        return result.SourceAssetId;
+    }
+
+    private async Task ExportResults()
+    {
+        var results = StateService.DiffInfo.Results;
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+
+        var jsonLines = results.Select(r => JsonSerializer.Serialize(r, options));
+        var content = string.Join("\n", jsonLines);
+        var fileName = $"diff-report-{DateTime.Now:yyyyMMdd-HHmmss}.jsonl";
+
+        // Download file using JavaScript interop
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, content);
+    }
+
+    public void Dispose()
+    {
+        StateService.OnChange -= StateHasChanged;
+    }
+}

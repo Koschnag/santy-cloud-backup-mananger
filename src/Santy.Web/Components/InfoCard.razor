@@ -1,0 +1,100 @@
+@using Santy.Web.Models
+
+@if (Info != null && ShowInfo)
+{
+    <div class="info-card">
+        <h3>@Title</h3>
+        <div class="info-row">
+            <span class="label">Last Operation:</span>
+            <span class="value">
+                @if (LastTime.HasValue)
+                {
+                    @LastTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                }
+                else
+                {
+                    <span class="text-muted">Never</span>
+                }
+            </span>
+        </div>
+        @foreach (var row in InfoRows)
+        {
+            <div class="info-row">
+                <span class="label">@row.Key:</span>
+                <span class="value">@row.Value</span>
+            </div>
+        }
+    </div>
+}
+else if (!ShowInfo)
+{
+    <div class="empty-state">
+        <p>@EmptyMessage</p>
+    </div>
+}
+
+<style>
+    .info-card {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .info-card h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+
+    .info-row {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-row .label {
+        font-weight: bold;
+        width: 150px;
+    }
+
+    .info-row .value {
+        flex: 1;
+    }
+
+    .text-muted {
+        color: #6c757d;
+    }
+
+    .empty-state {
+        background-color: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 4px;
+        padding: 40px;
+        text-align: center;
+        color: #6c757d;
+        margin-top: 20px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Info";
+
+    [Parameter]
+    public DateTime? LastTime { get; set; }
+
+    [Parameter]
+    public Dictionary<string, string> InfoRows { get; set; } = new();
+
+    [Parameter]
+    public string EmptyMessage { get; set; } = "No data available.";
+
+    private bool ShowInfo => LastTime.HasValue && InfoRows.Count > 0;
+
+    private object? Info => LastTime.HasValue ? new() : null;
+}
